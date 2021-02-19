@@ -102,6 +102,38 @@ namespace Frends.Community.Email
         [DefaultValue("agentinbox@frends.com")]
         [DisplayFormat(DataFormatString = "Text")]
         public string Mailbox { get; set; }
+        /// <summary>
+        /// Read mail from a custom exchange folder instead of the inbox
+        /// </summary>
+        [DefaultValue(false)]
+        public bool ReadFromCustomExchangeFolder { get; set; }
+        /// <summary>
+        /// Root of the custom folder. Uses ExchangeWellKnownFolderNames
+        /// </summary>
+        [UIHint(nameof(ReadFromCustomExchangeFolder), "", true)]
+        [DefaultValue(ExchangeWellKnownFolders.MsgFolderRoot)]
+        public ExchangeWellKnownFolders CustomExchangeFolderRoot { get; set; }
+        /// <summary>
+        /// Name of the custom exchange folder. If value is not set, task will try to search messages from custom exchange folder root 
+        /// </summary>
+        [UIHint(nameof(ReadFromCustomExchangeFolder), "", true)]
+        [DefaultValue("Inbox")]
+        [DisplayFormat(DataFormatString = "Text")]
+        public string CustomExchangeFolderName { get; set; }
+    }
+
+    /// <summary>
+    /// Root folder when using custom exchange folder name
+    /// </summary>
+    public enum ExchangeWellKnownFolders 
+    { 
+        MsgFolderRoot, 
+        Inbox, 
+        SentItems, 
+        Drafts, 
+        DeletedItems, 
+        JunkEmail, 
+        ConversationHistory 
     }
 
     /// <summary>

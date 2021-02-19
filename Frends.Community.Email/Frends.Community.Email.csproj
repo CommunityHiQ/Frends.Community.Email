@@ -10,8 +10,9 @@
     <IncludeSource>true</IncludeSource>
     <PackageTags>Frends</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Version>2.3.0</Version>
+    <Version>2.3.1</Version>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <AssemblyVersion>2.3.1.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

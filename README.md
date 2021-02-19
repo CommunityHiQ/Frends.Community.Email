@@ -125,6 +125,7 @@ You can reference email properties like so:
 ## ReadEmailFromExchangeServer
 Read emails from exchange server with or without attachements.
 
+
 This task can be only used on legacy (Windows) agent, because Microsoft.Exchange.WebServices.NETStandard does not implement all needed APIs on .Net standard.
 
 ### Server settings
@@ -138,6 +139,9 @@ This task can be only used on legacy (Windows) agent, because Microsoft.Exchange
 |Username	                |string                     |Account username      |agent@frends.com|
 |Password                   |string                     |Account password           |***|
 |Mailbox	                |string                     |Mail box to read emails from. Leave empty to read from default inbox |agentinbox@frends.com|
+|ReadFromCustomExchangeFolder|bool						|Set to true if task should read emails from other exchange folder than inbox|false|
+|CustomExchangeFolderRoot	|enum						|Root folder of the custom exchange folder|MsgFolderRoot|
+|CustomExchangeFolderName	|string						|Custom exchange folder name. If parameter is empty, task will try to read emails based on CustomExchangeFolderRoot-parameter. Case-sensitive|Outbox|
 
 ### Options
 
@@ -179,6 +183,10 @@ You can reference result properties like so:
 ```sh
 #result[ReadEmailFromExchangeServer][0].BodyHtml
 ```
+
+If ReadFromCustomExchangeFolder-option is used, task will try to read emails from the first matching folder under CustomExchangeFolderRoot.
+Another limitation is that Archive-folder can be accessed only by using parameters CustomExchangeFolderRoot: MsgFolderRoot and CustomExchangeFolderName: Archive.
+Archive folder is limited to "main" folder only, so no subfolders inside Archive can be read.
 
 # License
 
