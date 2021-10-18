@@ -10,7 +10,7 @@
     <IncludeSource>true</IncludeSource>
     <PackageTags>Frends</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Version>2.4.0</Version>
+    <Version>2.4.1</Version>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
   </PropertyGroup>
 
@@ -37,6 +37,7 @@
     <PackageReference Include="Portable.BouncyCastle" Version="1.8.8" />
     <PackageReference Include="System.ComponentModel" Version="4.3.0" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="4.7.0" />
+	<PackageReference Include="System.Net.NetworkInformation" Version="4.3.0" />
   </ItemGroup>
 
 </Project>
