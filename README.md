@@ -234,3 +234,5 @@ NOTE: Be sure to merge the latest from "upstream" before making a pull request!
 | 2.1.0 | Add support for Cc and Bcc recipients to SendEmail task |
 | 2.2.0 | Ported version for linux agent |
 | 2.3.0 | Tighter MAilKit dependency rules |
+| 2.4.0 | Now when Windows Authentication is disabled empty credentials are not set and thus frends Agent's credentials are used. |
+

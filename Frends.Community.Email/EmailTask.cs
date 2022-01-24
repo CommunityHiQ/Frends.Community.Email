@@ -85,7 +85,7 @@ namespace Frends.Community.Email
                 Host = settings.SMTPServer
             };
 
-            if (!settings.UseWindowsAuthentication)
+            if (!settings.UseWindowsAuthentication && !string.IsNullOrEmpty(settings.UserName))
                 smtpClient.Credentials = new NetworkCredential(settings.UserName, settings.Password);
 
             return smtpClient;
