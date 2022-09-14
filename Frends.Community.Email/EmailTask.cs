@@ -114,7 +114,10 @@ namespace Frends.Community.Email
 
                 client.AuthenticationMechanisms.Remove("XOAUTH2");
 
-                client.Authenticate(new NetworkCredential(SMTPSettings.UserName, SMTPSettings.Password));
+                if (SMTPSettings.DisableAuthentication == false)
+                {
+                    client.Authenticate(new NetworkCredential(SMTPSettings.UserName, SMTPSettings.Password));
+                }
 
                 client.Send(mail);
 

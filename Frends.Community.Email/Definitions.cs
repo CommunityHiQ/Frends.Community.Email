@@ -149,6 +149,12 @@ namespace Frends.Community.Email
         [PasswordPropertyText]
         [DefaultValue("\"\"")]
         public string Password { get; set; }
+
+        /// <symmary>
+        /// Use this to disable SMTP authentication.
+        /// </symmary>
+        [DefaultValue("false")]
+        public bool DisableAuthentication { get; set; }
     }
 
     public class ExchangeServer

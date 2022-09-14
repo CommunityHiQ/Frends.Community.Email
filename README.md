@@ -73,14 +73,15 @@ Settings for included attachments.
 
 Settings for connecting to SMTP server.
 
-| Property       | Type   | Description                                                                                                                                                                 | Example                  |
-|----------------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
-| Smtp server    | string | SMTP server address.                                                                                                                                                        | smtp.somedomain.com      |
-| Port           | int    | SMTP server port.                                                                                                                                                           | 25                       |
-| SecureSocket   | enum   | Choose what SecureSocketOptions to use, default: SecureSocketOptions.Auto                                                                                                   | SecureSocketOptions.None |
-| AcceptAllCerts | bool   | Accept all certificates when connecting the host, if true, will accept event invalid certificates. If false, will accept self-signed certificates if the root is untrusted. | false                    |
-| User name      | string | Use this username to log in to the SMTP server.                                                                                                                             | user                     |
-| Password       | string | Use this password to log in to the SMTP server.                                                                                                                             | password                 |
+| Property              | Type   | Description                                                                                                                                                                 | Example                  |
+|-----------------------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
+| Smtp server           | string | SMTP server address.                                                                                                                                                        | smtp.somedomain.com      |
+| Port                  | int    | SMTP server port.                                                                                                                                                           | 25                       |
+| SecureSocket          | enum   | Choose what SecureSocketOptions to use, default: SecureSocketOptions.Auto                                                                                                   | SecureSocketOptions.None |
+| AcceptAllCerts        | bool   | Accept all certificates when connecting the host, if true, will accept event invalid certificates. If false, will accept self-signed certificates if the root is untrusted. | false                    |
+| User name             | string | Use this username to log in to the SMTP server.                                                                                                                             | user                     |
+| Password              | string | Use this password to log in to the SMTP server.                                                                                                                             | password                 |
+| DisableAuthentication | bool   | Use this to disable authentication.                                                                                                                                         | false                    |
 
 
 ### Result
@@ -297,3 +298,4 @@ NOTE: Be sure to merge the latest from "upstream" before making a pull request!
 | 2.5.2   | Fixed bug in SendEmail task. Now email message can contain curly brackets.                                                                                |
 | 2.6.0   | Added new task for sending email to Exchange server. Added possibility to use access token as authentication method for ReadEmailFromExchangeServer-task. |
 | 3.0.0   | ReadEmailFromExchangeServer modified to use Microsoft Graph. Added task for sending emails to Exchange server. Basic authentication removed from ReadEmailFromExchangeServer-task, which breaks the version 2.6.0 implementation. Migration from Basic authentication to OAuth is necessary when updating to 3.0.0. |
+| 3.1.0   | Added option to disable SMTP authentication                                                                                                               |
