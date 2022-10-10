@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
-namespace Frends.Community.Email
+namespace Frends.Community.Email.ReadEmailDefinition
 {
     /// <summary>
     /// Settings for IMAP and POP3 servers.
@@ -54,25 +54,23 @@ namespace Frends.Community.Email
     /// </summary>
     public class ExchangeSettings
     {
-        /// <summary>
-        /// Email account to use.
-        /// </summary>
-        [DefaultValue("agent@frends.com")]
-        [DisplayFormat(DataFormatString = "Text")]
-        public string Username { get; set; }
-
-        /// <summary>
-        /// Account password.
-        /// </summary>
-        [PasswordPropertyText]
-        public string Password { get; set; }
-
-        /// <summary>
+      /// <summary>
         /// App ID for fetching access token.
         /// </summary>
         [DefaultValue("")]
         public string AppId { get; set; }
+        /// <summary>
+        /// App ID for fetching access token.
+        /// </summary>
+        [PasswordPropertyText]
+        public string AppSecret { get; set; }
 
+        /// <summary>
+        /// Operation scope. Often Microsoft Graph default value is enough. Scopes are delimeted by ;. Example: https://graph.microsoft.com/.default;https://graph.microsoft.com/Mail.Read
+        /// </summary>
+        [DefaultValue("https://graph.microsoft.com/.default")]
+        [DisplayFormat(DataFormatString = "Text")]
+        public string Scopes { get; set; }
         /// <summary>
         /// Tenant ID for fetching access token.
         /// </summary>
@@ -81,15 +79,13 @@ namespace Frends.Community.Email
 
         /// <summary>
         /// Mailbox from where the emails will be read.
-        /// If empty, username will be used.
         /// </summary>
-        [DefaultValue("")]
+        [DefaultValue("groupemailbox@nonfunctionalbox.com")]
         [DisplayFormat(DataFormatString = "Text")]
         public string Mailbox { get; set; }
 
         /// <summary>
-        /// Folder from where the emails will be read.
-        /// If empty then value will be set to Inbox.
+        /// Mailbox from where the emails will be read.
         /// </summary>
         [DefaultValue("Inbox")]
         [DisplayFormat(DataFormatString = "Text")]
@@ -247,9 +243,21 @@ namespace Frends.Community.Email
         /// </summary>
         public string BodyHtml { get; set; }
 
+
         /// <summary>
-        /// Attachment download path.
+        /// List of attachments downloaded List of objects {string OriginalFileName, string SaveDirecrtory, string SaveFilename, string FullPathToSaveFile }
         /// </summary>
-        public List<string> AttachmentSaveDirs { get; set; }
+        public List<Frends.Community.Email.ReadEmailDefinition.Attachment> Attachments { get; set; }
+
+
     }
+
+    public class Attachment
+    {
+        public string OriginalFilename { get; set; }
+        public string SaveDirectory { get; set; }
+        public string SaveFilename { get; set; }
+        public string FullPathToSaveFile { get; set; }
+    }
+
 }
