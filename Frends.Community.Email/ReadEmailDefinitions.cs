@@ -245,7 +245,7 @@ namespace Frends.Community.Email.ReadEmailDefinition
 
 
         /// <summary>
-        /// List of attachments downloaded List of objects {string OriginalFileName, string SaveDirecrtory, string SaveFilename, string FullPathToSaveFile }
+        /// List of attachments downloaded List of objects {string OriginalFileName, string SaveDirectory, string SaveFilename, string FullPathToSaveFile }
         /// </summary>
         public List<Frends.Community.Email.ReadEmailDefinition.Attachment> Attachments { get; set; }
 
