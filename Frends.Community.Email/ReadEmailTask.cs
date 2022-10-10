@@ -99,7 +99,6 @@ namespace Frends.Community.Email
         {
             var queryOptions = new List<QueryOption>();
             var result = new List<EmailMessageResult>();
-           // var credentials = new UsernamePasswordCredential(settings.Username, settings.Password, settings.TenantId, settings.AppId);
 
             var tenantId = settings.TenantId;
 
@@ -126,9 +125,15 @@ namespace Frends.Community.Email
             if (string.IsNullOrEmpty(settings.Mailbox))
                 throw new ArgumentException("No mailbox provided. Please provide mailbox where emails will be read.");
 
+            if (options.GetOnlyUnreadEmails)
+            {
+                searchQuery = $"isread:false";
+                queryInUse = true;
+            }
+
             if (!string.IsNullOrWhiteSpace(options.EmailSenderFilter))
             {
-                searchQuery = $"from:{options.EmailSenderFilter}";
+                searchQuery += ((queryInUse ? $" AND " : "") + $"from:{options.EmailSenderFilter}");
                 queryInUse = true;
             }
 
@@ -151,7 +156,7 @@ namespace Frends.Community.Email
             foreach (var email in messages)
             {
                 var attachmentPaths = await WriteAttachments(email, options, graphServiceClient, cancellationToken, settings);
-                
+
                 List<string> ToResult = new List<string>();
                 List<string> CcResult = new List<string>();
                 List<string> BccResult = new List<string>();
@@ -181,42 +186,21 @@ namespace Frends.Community.Email
                     Attachments = attachmentPaths
                 };
 
-                if (options.GetOnlyUnreadEmails && !email.IsRead.Value)
+                var added = false;
+                if (options.GetOnlyEmailsWithAttachments && singleResult.Attachments.Count != 0)
                 {
-                    var added = false;
-                    if (options.GetOnlyEmailsWithAttachments && singleResult.Attachments.Count != 0)
-                    {
-                        result.Add(singleResult);
-                        added = true;
-                    }
-                    else if (!options.GetOnlyEmailsWithAttachments)
-                    {
-                        result.Add(singleResult);
-                        added = true;
-                    }
-                    if (added && options.DeleteReadEmails)
-                        await graphServiceClient.Users[settings.Mailbox].MailFolders[settings.MailFolder].Messages[email.Id].Request().DeleteAsync(cancellationToken);
-                    else if (added && options.MarkEmailsAsRead)
-                        await graphServiceClient.Users[settings.Mailbox].MailFolders[settings.MailFolder].Messages[email.Id].Request().Select("IsRead").UpdateAsync(new Message { IsRead = true }, cancellationToken);
+                    result.Add(singleResult);
+                    added = true;
                 }
-                else if (!options.GetOnlyUnreadEmails)
+                else if (!options.GetOnlyEmailsWithAttachments)
                 {
-                    var added = false;
-                    if (options.GetOnlyEmailsWithAttachments && singleResult.Attachments.Count != 0)
-                    {
-                        result.Add(singleResult);
-                        added = true;
-                    }
-                    else if (!options.GetOnlyEmailsWithAttachments)
-                    {
-                        result.Add(singleResult);
-                        added = true;
-                    }
-                    if (added && options.DeleteReadEmails)
-                        await graphServiceClient.Users[settings.Mailbox].MailFolders[settings.MailFolder].Messages[email.Id].Request().DeleteAsync(cancellationToken);
-                    else if (added && options.MarkEmailsAsRead)
-                        await graphServiceClient.Users[settings.Mailbox].MailFolders[settings.MailFolder].Messages[email.Id].Request().Select("IsRead").UpdateAsync(new Message { IsRead = true }, cancellationToken);
+                    result.Add(singleResult);
+                    added = true;
                 }
+                if (added && options.DeleteReadEmails)
+                    await graphServiceClient.Users[settings.Mailbox].MailFolders[settings.MailFolder].Messages[email.Id].Request().DeleteAsync(cancellationToken);
+                else if (added && options.MarkEmailsAsRead)
+                    await graphServiceClient.Users[settings.Mailbox].MailFolders[settings.MailFolder].Messages[email.Id].Request().Select("IsRead").UpdateAsync(new Message { IsRead = true }, cancellationToken);
             }
 
             return result;
@@ -224,9 +208,9 @@ namespace Frends.Community.Email
 
         #region HelperMethods
 
-        private static async Task<List<kevafi.Frends.Community.Email.ReadEmailDefinition.Attachment>> WriteAttachments(Message email, ExchangeOptions options, GraphServiceClient graphServiceClient, CancellationToken cancellationToken, ExchangeSettings settings )
+        private static async Task<List<Frends.Community.Email.ReadEmailDefinition.Attachment>> WriteAttachments(Message email, ExchangeOptions options, GraphServiceClient graphServiceClient, CancellationToken cancellationToken, ExchangeSettings settings )
         {
-            List<kevafi.Frends.Community.Email.ReadEmailDefinition.Attachment> pathList = new List<kevafi.Frends.Community.Email.ReadEmailDefinition.Attachment>();
+            List<Frends.Community.Email.ReadEmailDefinition.Attachment> pathList = new List<Frends.Community.Email.ReadEmailDefinition.Attachment>();
 
             //var attachmentPaths = new List<string>();
             if (!options.IgnoreAttachments && email.HasAttachments.Value)
@@ -245,7 +229,7 @@ namespace Frends.Community.Email
                     string saveFilename = $"{Path.GetFileNameWithoutExtension(attachment.Name)}_{uniqueFileID}{Path.GetExtension(attachment.Name)}";
                     string path = Path.Combine(options.AttachmentSaveDirectory, saveFilename);
 
-                    kevafi.Frends.Community.Email.ReadEmailDefinition.Attachment resultItem = new kevafi.Frends.Community.Email.ReadEmailDefinition.Attachment()
+                    Frends.Community.Email.ReadEmailDefinition.Attachment resultItem = new Frends.Community.Email.ReadEmailDefinition.Attachment()
                     {
                         OriginalFilename = attachment.Name,
                         SaveDirectory = options.AttachmentSaveDirectory,

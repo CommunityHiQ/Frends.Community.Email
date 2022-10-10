@@ -251,7 +251,9 @@ namespace Frends.Community.Email.ReadEmailDefinition
 
 
     }
-
+    /// <summary>
+    /// Attachment retrieval object. Details of stored attachment.
+    /// </summary>
     public class Attachment
     {
         public string OriginalFilename { get; set; }
