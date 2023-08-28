@@ -166,6 +166,9 @@ namespace Frends.Community.Email
             var to = new List<Recipient>();
             var cc = new List<Recipient>();
             var bcc = new List<Recipient>();
+            Recipient from = null;
+            IUserRequestBuilder user;
+
 
             foreach (var receiver in recipients) to.Add(new Recipient { EmailAddress = new EmailAddress { Address = receiver } });
 
@@ -179,54 +182,54 @@ namespace Frends.Community.Email
                 recipients = input.Bcc.Split(new char[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries);
                 foreach (var receiver in recipients) bcc.Add(new Recipient { EmailAddress = new EmailAddress { Address = receiver } });
             }
-
-            if (attachments != null && attachments.Length > 0)
+            if (!string.IsNullOrWhiteSpace(input.From))
             {
-                return await SendExchangeEmailWithAttachments(attachments, graph, input.Subject, messageBody, to, cc, bcc, cancellationToken);
+                from = new Recipient { EmailAddress = new EmailAddress { Address = input.From } };
+                user = graph.Users[input.From];
             }
             else
             {
-                var message = new Message
-                {
-                    Subject = input.Subject,
-                    Body = messageBody,
-                    ToRecipients = to,
-                    CcRecipients = cc,
-                    BccRecipients = bcc
-                };
-                if (string.IsNullOrWhiteSpace(input.From))
-                    await graph.Me.SendMail(message, true).Request().PostAsync(cancellationToken);
-                else
-                    await graph.Users[input.From].SendMail(message, true).Request().PostAsync(cancellationToken);
-                return new Output
-                {
-                    EmailSent = true,
-                    StatusString = $"Email sent to: {input.To}"
-                };
+                user = graph.Me;
             }
+
+            var message = new Message
+            {
+                Subject = input.Subject,
+                Body = messageBody,
+                ToRecipients = to,
+                CcRecipients = cc,
+                BccRecipients = bcc,
+                From = from,
+            };
+
+            return await SendExchangeEmail(user, message, attachments, cancellationToken);
         }
 
         #region HelperMethods
 
-        private static async Task<Output> SendExchangeEmailWithAttachments(Attachment[] attachments, GraphServiceClient graphClient, string subject, ItemBody messageBody, List<Recipient> to, List<Recipient> cc, List<Recipient> bcc, CancellationToken cancellationToken)
+        private static async Task<Output> SendExchangeEmail(IUserRequestBuilder user, Message message, Attachment[] attachments, CancellationToken cancellationToken)
         {
+            var to = string.Join(", ", message.ToRecipients.Select(x => x.EmailAddress.Address));
+            var successMessage = $"Email sent to: {to}";
+
+            // Short circuit if no attachments, SendMail requires less permissions than creating Messages
+            if (attachments == null || attachments.Length == 0)
+            {
+                await user.SendMail(message, true).Request().PostAsync(cancellationToken);
+                return new Output
+                {
+                    EmailSent = true,
+                    StatusString = successMessage
+                };
+            }
+
             var attachmentList = new MessageAttachmentsCollectionPage();
             var allAttachmentFilePaths = new List<string>();
 
-            var message = new Message
-            {
-                Subject = subject,
-                Body = messageBody,
-                ToRecipients = to,
-                CcRecipients = cc,
-                BccRecipients = bcc
-            };
-
-            var msgResult = await graphClient.Me.Messages.Request().AddAsync(message, cancellationToken);
+            var msgResult = await user.Messages.Request().AddAsync(message, cancellationToken);
 
             foreach (var attachment in attachments)
             {
-
                 string tempFilePath = "";
                 if (attachment.AttachmentType == AttachmentType.AttachmentFromString)
                 {
@@ -270,7 +273,7 @@ namespace Frends.Community.Email
                         Size = info.Length
                     };
 
-                    var uploadSession = await graphClient.Me.Messages[msgResult.Id].Attachments.CreateUploadSession(attachmentItem).Request().PostAsync(cancellationToken);
+                    var uploadSession = await user.Messages[msgResult.Id].Attachments.CreateUploadSession(attachmentItem).Request().PostAsync(cancellationToken);
                     var allBytes = File.ReadAllBytes(filePath);
 
                     using (var stream = new MemoryStream(allBytes))
@@ -284,11 +287,11 @@ namespace Frends.Community.Email
                 }
             }
 
-            await graphClient.Me.Messages[msgResult.Id].Send().Request().PostAsync(cancellationToken);
+            await user.Messages[msgResult.Id].Send().Request().PostAsync(cancellationToken);
             return new Output
             {
                 EmailSent = true,
-                StatusString = $"Email sent to: {to}"
+                StatusString = successMessage
             };
         }
 
