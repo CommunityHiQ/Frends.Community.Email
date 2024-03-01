@@ -4,8 +4,10 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
 using File = System.IO.File;
 using Path = System.IO.Path;
 
@@ -18,6 +20,7 @@ namespace Frends.Community.Email.Tests
         private readonly string _password = Environment.GetEnvironmentVariable("Exchange_User_Password");
         private readonly string _applicationID = Environment.GetEnvironmentVariable("Exchange_Application_ID");
         private readonly string _tenantID = Environment.GetEnvironmentVariable("Exchange_Tenant_ID");
+        private readonly string _attachmentDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "testAttachments");
         private static ExchangeServer _server;
 
         [OneTimeSetUp]
@@ -37,6 +40,23 @@ namespace Frends.Community.Email.Tests
                 AppId = _applicationID,
                 TenantId = _tenantID
             };
+
+            if (System.IO.Directory.Exists(_attachmentDirectory))
+            {
+                DeleteAttachmentDirectory();
+            }
+        }
+
+        [SetUp]
+        public void CreateAttachmentDirectory()
+        {
+            System.IO.Directory.CreateDirectory(_attachmentDirectory);
+        }
+
+        [TearDown]
+        public void DeleteAttachmentDirectory()
+        {
+            System.IO.Directory.Delete(_attachmentDirectory, true);
         }
 
         [Test]
@@ -54,8 +74,8 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, null, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.AreEqual(email[0].BodyText, message);
             await DeleteMessages(subject);
         }
@@ -74,8 +94,8 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, null, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.AreEqual(_username + ", " + _username, email[0].To);
             await DeleteMessages(subject);
         }
@@ -94,8 +114,8 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, null, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.AreEqual(_username + ", " + _username, email[0].To);
             await DeleteMessages(subject);
         }
@@ -115,8 +135,8 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, null, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.AreEqual(_username, email[0].Cc);
             await DeleteMessages(subject);
         }
@@ -137,8 +157,8 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, null, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.IsTrue(email[0].BodyHtml.Contains(message));
             await DeleteMessages(subject);
         }
@@ -157,8 +177,8 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, null, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails with correct subject found in inbox.");
             Assert.AreEqual("Tämä testimaili tuo yöllä ålannista.", email[0].BodyText);
             Assert.AreEqual(subject, email[0].Subject);
             await DeleteMessages(subject);
@@ -168,7 +188,7 @@ namespace Frends.Community.Email.Tests
         public async Task SendEmailWithFileAttachmentTest()
         {
             var subject = "Email test - FileAttachment";
-            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../attachmentFile.txt");
+            var filePath = Path.Combine(_attachmentDirectory, "attachmentFile.txt");
             File.WriteAllText(filePath, "This is a test attachment file.");
             var input = new ExchangeInput
             {
@@ -191,8 +211,8 @@ namespace Frends.Community.Email.Tests
             var result = await EmailTask.SendEmailToExchangeServer(input, attachmentArray, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
             File.Delete(filePath);
-            Thread.Sleep(2000); // Give the email some time to get through.
-            await ReadTestEmailWithAttachment(subject);
+            var email = await ReadTestEmailWithAttachment(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.IsTrue(File.Exists(filePath));
             File.Delete(filePath);
             await DeleteMessages(subject);
@@ -202,9 +222,9 @@ namespace Frends.Community.Email.Tests
         public async Task SendEmailWithMultipleFileAttachmentTest()
         {
             var subject = "Email test - MultiFileAttachment";
-            var filePath1 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../first.txt");
+            var filePath1 = Path.Combine(_attachmentDirectory, "first.txt");
             File.WriteAllText(filePath1, "This is a test attachment file.");
-            var filePath2 = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../second.txt");
+            var filePath2 = Path.Combine(_attachmentDirectory, "second.txt");
             File.WriteAllText(filePath2, "This is a test attachment file.");
             var input = new ExchangeInput
             {
@@ -217,7 +237,7 @@ namespace Frends.Community.Email.Tests
             var attachment = new Attachment
             {
                 AttachmentType = AttachmentType.FileAttachment,
-                FilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../*.txt"),
+                FilePath = Path.Combine(_attachmentDirectory, "*.txt"),
                 ThrowExceptionIfAttachmentNotFound = false,
                 SendIfNoAttachmentsFound = false
             };
@@ -228,7 +248,8 @@ namespace Frends.Community.Email.Tests
             Assert.IsTrue(result.EmailSent);
             File.Delete(filePath1);
             File.Delete(filePath2);
-            Thread.Sleep(2000); // Give the email some time to get through.
+            var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             await DeleteMessages(subject);
         }
 
@@ -236,7 +257,7 @@ namespace Frends.Community.Email.Tests
         public async Task SendEmailWithBigFileAttachmentTest()
         {
             var subject = "Email test - BigFileAttachment";
-            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../BigAttachmentFile.txt");
+            var filePath = Path.Combine(_attachmentDirectory, "BigAttachmentFile.txt");
 
             // Write 9MB file.
             var stream = new FileStream(filePath, FileMode.CreateNew);
@@ -265,8 +286,8 @@ namespace Frends.Community.Email.Tests
             var result = await EmailTask.SendEmailToExchangeServer(input, attachmentArray, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
             File.Delete(filePath);
-            Thread.Sleep(2000); // Give the email some time to get through.
-            await ReadTestEmailWithAttachment(subject);
+            var email = await ReadTestEmailWithAttachment(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.IsTrue(File.Exists(filePath));
             File.Delete(filePath);
             await DeleteMessages(subject);
@@ -275,7 +296,7 @@ namespace Frends.Community.Email.Tests
         [Test]
         public async Task SendEmailWithStringAttachmentTest()
         {
-            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../stringAttachmentFile.txt");
+            var filePath = Path.Combine(_attachmentDirectory, "stringAttachmentFile.txt");
             var subject = "Email test - StringAttachment";
             var input = new ExchangeInput
             {
@@ -301,10 +322,62 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, attachmentArray, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
-            await ReadTestEmailWithAttachment(subject);
+            var email = await ReadTestEmailWithAttachment(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.IsTrue(File.Exists(filePath));
             File.Delete(filePath);
+            await DeleteMessages(subject);
+        }
+
+        [Test]
+        public async Task SendEmailWithTwoStringAttachmentsTest()
+        {
+            var attachments = new Attachment[]
+            {
+                new Attachment
+                {
+                    AttachmentType = AttachmentType.AttachmentFromString,
+                    StringAttachment = new AttachmentFromString
+                    {
+                        FileContent = "Test content 1.",
+                        FileName = "stringAttachmentFile1.txt"
+                    }
+                },
+                new Attachment
+                {
+                    AttachmentType = AttachmentType.AttachmentFromString,
+                    StringAttachment = new AttachmentFromString
+                    {
+                        FileContent = "Test file content 2.",
+                        FileName = "stringAttachmentFile2.txt"
+                    }
+                }
+            };
+            var subject = "Email test - StringAttachment";
+
+            var result = await EmailTask.SendEmailToExchangeServer(
+                new ExchangeInput
+                {
+                    To = _username,
+                    Message = "This email has two attachments written from a string.",
+                    IsMessageHtml = false,
+                    Subject = subject
+                },
+                attachments,
+                _server,
+                new CancellationToken()
+            );
+            Assert.IsTrue(result.EmailSent);
+            var email = await ReadTestEmailWithAttachment(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
+            foreach (var attachment in attachments)
+            {
+                var fileName = attachment.StringAttachment.FileName;
+                var filePath = Path.Combine(_attachmentDirectory, fileName);
+                Assert.IsTrue(File.Exists(filePath), $"File {fileName} not found in attachments.");
+                Assert.AreEqual(attachment.StringAttachment.FileContent, File.ReadAllText(filePath), $"Attachment {fileName} contents do not match with what was sent.");
+                File.Delete(filePath);
+            }
             await DeleteMessages(subject);
         }
 
@@ -325,8 +398,8 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, attachment.ToArray(), _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.AreEqual(email[0].BodyText, message);
             await DeleteMessages(subject);
         }
@@ -347,8 +420,8 @@ namespace Frends.Community.Email.Tests
 
             var result = await EmailTask.SendEmailToExchangeServer(input, null, _server, new CancellationToken());
             Assert.IsTrue(result.EmailSent);
-            Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
+            Assert.IsTrue(email.Count > 0, "No emails matching subject in inbox.");
             Assert.AreEqual("frends_exchange_test_user_2@frends.com", email[0].From);
             await DeleteMessages(subject);
         }
@@ -389,13 +462,20 @@ namespace Frends.Community.Email.Tests
                 EmailSubjectFilter = subject
             };
 
-            var result = await ReadEmailTask.ReadEmailFromExchangeServer(settings, options, new CancellationToken());
-            return result;
+            for (var attempt = 0; attempt < 5; ++attempt)
+            {
+                var result = await ReadEmailTask.ReadEmailFromExchangeServer(settings, options, new CancellationToken());
+                if (result.Any())
+                {
+                    return result;
+                }
+                await Task.Delay(2000); // Give the email some time to get through.
+            }
+            return new List<EmailMessageResult>();
         }
 
         private async Task<List<EmailMessageResult>> ReadTestEmailWithAttachment(string subject)
         {
-            var dirPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../..");
             var settings = new ExchangeSettings
             {
                 TenantId = _tenantID,
@@ -411,12 +491,21 @@ namespace Frends.Community.Email.Tests
                 GetOnlyUnreadEmails = false,
                 MarkEmailsAsRead = false,
                 IgnoreAttachments = false,
-                AttachmentSaveDirectory = dirPath,
-                EmailSubjectFilter = subject
+                AttachmentSaveDirectory = _attachmentDirectory,
+                EmailSubjectFilter = subject,
+                FileExistsAction = FileExists.Error
             };
 
-            var result = await ReadEmailTask.ReadEmailFromExchangeServer(settings, options, new CancellationToken());
-            return result;
+            for (var attempt = 0; attempt < 5; ++attempt)
+            {
+                var result = await ReadEmailTask.ReadEmailFromExchangeServer(settings, options, new CancellationToken());
+                if (result.Any())
+                {
+                    return result;
+                }
+                await Task.Delay(2000); // Give the email some time to get through.
+            }
+            return new List<EmailMessageResult>();
         }
 
         #endregion
