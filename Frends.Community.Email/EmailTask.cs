@@ -11,7 +11,6 @@ using MailKit.Security;
 using System.Threading.Tasks;
 using Azure.Identity;
 using Microsoft.Graph;
-using System.Text;
 using File = System.IO.File;
 using Directory = System.IO.Directory;
 using System.Linq;
@@ -210,9 +209,6 @@ namespace Frends.Community.Email
 
         private static async Task<Output> SendExchangeEmailWithAttachments(Attachment[] attachments, GraphServiceClient graphClient, string subject, ItemBody messageBody, List<Recipient> to, List<Recipient> cc, List<Recipient> bcc, CancellationToken cancellationToken)
         {
-            var attachmentList = new MessageAttachmentsCollectionPage();
-            var allAttachmentFilePaths = new List<string>();
-
             var message = new Message
             {
                 Subject = subject,
@@ -223,64 +219,67 @@ namespace Frends.Community.Email
             };
 
             var msgResult = await graphClient.Me.Messages.Request().AddAsync(message, cancellationToken);
-
+            var graphAttachments = graphClient.Me.Messages[msgResult.Id].Attachments;
             foreach (var attachment in attachments)
             {
-
-                string tempFilePath = "";
                 if (attachment.AttachmentType == AttachmentType.AttachmentFromString)
                 {
                     // Create attachment only if content is not empty.
                     if (!string.IsNullOrEmpty(attachment.StringAttachment.FileContent))
                     {
-                        tempFilePath = CreateTemporaryFile(attachment);
-                        var attachmentContent = File.ReadAllBytes(tempFilePath);
-                        var oneAttachment = new FileAttachment
+                        using (var stream = new MemoryStream())
                         {
-                            ODataType = "#microsoft.graph.fileAttachment",
-                            ContentBytes = attachmentContent,
-                            ContentType = MimeTypes.GetMimeType(tempFilePath),
-                            Name = Path.GetFileName(tempFilePath)
-                        };
-                        allAttachmentFilePaths.Add(tempFilePath);
+                            using (var writer = new StreamWriter(stream))
+                            {
+                                writer.Write(attachment.StringAttachment.FileContent);
+                                writer.Flush();
+                                stream.Position = 0;
+                                var attachmentItem = new AttachmentItem
+                                {
+                                    AttachmentType = Microsoft.Graph.AttachmentType.File,
+                                    Name = attachment.StringAttachment.FileName,
+                                    Size = stream.Length
+                                };
+                                var uploadSession = await graphAttachments.CreateUploadSession(attachmentItem).Request().PostAsync(cancellationToken);
+                                var largeFileUploadTask = new LargeFileUploadTask<FileAttachment>(uploadSession, stream);
+                                await largeFileUploadTask.UploadAsync();
+                            }
+                        }
                     }
                 }
                 else
-                    allAttachmentFilePaths = GetAttachmentFiles(attachment.FilePath);
-
-                if (attachment.ThrowExceptionIfAttachmentNotFound && allAttachmentFilePaths.Count == 0) throw new FileNotFoundException($"The given filepath \"{attachment.FilePath}\" had no matching files");
-
-                if (allAttachmentFilePaths.Count == 0 && !attachment.SendIfNoAttachmentsFound)
                 {
-                    return new Output
+                    var filePaths = GetAttachmentFiles(attachment.FilePath);
+                    if (attachment.ThrowExceptionIfAttachmentNotFound && filePaths.Count == 0)
                     {
-                        EmailSent = false,
-                        StatusString = $"No attachments found matching path \"{attachmentList[0].Name}\". No email sent."
-                    };
-                }
-
-                foreach (var filePath in allAttachmentFilePaths)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var info = new FileInfo(filePath);
-                    var attachmentItem = new AttachmentItem
-                    {
-                        AttachmentType = Microsoft.Graph.AttachmentType.File,
-                        Name = Path.GetFileName(filePath),
-                        Size = info.Length
-                    };
-
-                    var uploadSession = await graphClient.Me.Messages[msgResult.Id].Attachments.CreateUploadSession(attachmentItem).Request().PostAsync(cancellationToken);
-                    var allBytes = File.ReadAllBytes(filePath);
-
-                    using (var stream = new MemoryStream(allBytes))
-                    {
-                        stream.Position = 0;
-                        var largeFileUploadTask = new LargeFileUploadTask<FileAttachment>(uploadSession, stream);
-                        await largeFileUploadTask.UploadAsync();
+                        throw new FileNotFoundException($"The given filepath \"{attachment.FilePath}\" had no matching files");
                     }
-                    
-                    if (attachment.AttachmentType == AttachmentType.AttachmentFromString) CleanUpTempWorkDir(tempFilePath);
+                    if (filePaths.Count == 0 && !attachment.SendIfNoAttachmentsFound)
+                    {
+                        return new Output
+                        {
+                            EmailSent = false,
+                            StatusString = $"No attachments found matching path \"{attachment.FilePath}\". No email sent."
+                        };
+                    }
+                    foreach (var filePath in filePaths)
+                    {
+                        var info = new FileInfo(filePath);
+                        var attachmentItem = new AttachmentItem
+                        {
+                            AttachmentType = Microsoft.Graph.AttachmentType.File,
+                            Name = Path.GetFileName(filePath),
+                            Size = info.Length
+                        };
+                        var uploadSession = await graphAttachments.CreateUploadSession(attachmentItem).Request().PostAsync(cancellationToken);
+                        var allBytes = File.ReadAllBytes(filePath);
+                        using (var stream = new MemoryStream(allBytes))
+                        {
+                            stream.Position = 0;
+                            var largeFileUploadTask = new LargeFileUploadTask<FileAttachment>(uploadSession, stream);
+                            await largeFileUploadTask.UploadAsync();
+                        }
+                    }
                 }
             }
 
