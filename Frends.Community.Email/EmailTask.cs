@@ -11,7 +11,6 @@ using MailKit.Security;
 using System.Threading.Tasks;
 using Azure.Identity;
 using Microsoft.Graph;
-using System.Text;
 using File = System.IO.File;
 using Directory = System.IO.Directory;
 using System.Linq;
