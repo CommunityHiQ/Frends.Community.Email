@@ -321,3 +321,4 @@ NOTE: Be sure to merge the latest from "upstream" before making a pull request!
 | 4.1.3   | ReadEmailFromExchangeServer: Ignore ItemAttachments to prevent failing of the Task if attachment is ItemAttachment instead of FileAttachment.             |
 | 4.2.0   | SendEmail: Added feature to add custom headers to email sending.                                                                                          |
 | 4.2.1   | SendEmailToExchangeServer: Fixed issue which prevented adding multiple attachment to email.                                                               |
+| 4.3.0   | ReadEmailFromExchangeServer: Added the option to use client secret for authentication instead of username/password                                                               |
