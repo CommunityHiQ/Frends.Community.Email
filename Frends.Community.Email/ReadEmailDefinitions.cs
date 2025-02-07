@@ -94,6 +94,12 @@ namespace Frends.Community.Email
         [DefaultValue("Inbox")]
         [DisplayFormat(DataFormatString = "Text")]
         public string MailFolder { get; set; }
+
+        /// <summary>
+        /// Client secret
+        /// </summary>
+        [PasswordPropertyText]
+        public string ClientSecret { get; set; }
     }
 
     /// <summary>

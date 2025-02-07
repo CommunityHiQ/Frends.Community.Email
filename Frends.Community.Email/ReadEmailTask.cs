@@ -98,13 +98,26 @@ namespace Frends.Community.Email
         {
             var queryOptions = new List<QueryOption>();
             var result = new List<EmailMessageResult>();
-            var credentials = new UsernamePasswordCredential(settings.Username, settings.Password, settings.TenantId, settings.AppId);
-            var graphServiceClient = new GraphServiceClient(credentials);
             var searchQuery = "";
             var queryInUse = false;
 
-            if (string.IsNullOrEmpty(settings.Username) || string.IsNullOrEmpty(settings.Password) || string.IsNullOrEmpty(settings.AppId) || string.IsNullOrEmpty(settings.TenantId))
-                throw new ArgumentException("Username, Password, Application ID and Tenant ID cannot be empty. Please check Exchange settings.");
+            // Check task settings parameters AppId & TenantId
+            if (string.IsNullOrEmpty(settings.AppId) || string.IsNullOrEmpty(settings.TenantId))
+                throw new ArgumentException("Application ID and Tenant ID cannot be empty. Please check Exchange settings.");
+
+            // Check task settings authentication parameters
+            if( ( string.IsNullOrEmpty(settings.Username) || string.IsNullOrEmpty(settings.Password) )
+                && string.IsNullOrEmpty(settings.ClientSecret))
+                throw new ArgumentException("Either client secret or username/password must be provided.");
+
+            // Use username & password by default in GraphServiceClient
+            var graphServiceClient = new GraphServiceClient(new UsernamePasswordCredential(settings.Username, settings.Password, settings.TenantId, settings.AppId));
+
+            // use Client secret in GraphServiceClient if Client secret is provided in task settings
+            if(!string.IsNullOrWhiteSpace(settings.ClientSecret))
+            {
+                graphServiceClient = new GraphServiceClient(new ClientSecretCredential(settings.TenantId, settings.AppId, settings.ClientSecret));
+            }
 
             if (!string.IsNullOrWhiteSpace(options.EmailSenderFilter))
             {
