@@ -14,7 +14,8 @@ namespace Frends.Community.Email.Tests
     [TestFixture]
     public class SendExchangeEmailTests
     {
-        private readonly string _username = "frends_exchange_test_user@frends.com";
+        private readonly string _username = Environment.GetEnvironmentVariable("Exchange_User") ?? "frends_exchange_test_user@frends.com";
+        private readonly string _otherUser = Environment.GetEnvironmentVariable("Exchange_Other_User") ?? "frends_exchange_test_user_2@frends.com";
         private readonly string _password = Environment.GetEnvironmentVariable("Exchange_User_Password");
         private readonly string _applicationID = Environment.GetEnvironmentVariable("Exchange_Application_ID");
         private readonly string _tenantID = Environment.GetEnvironmentVariable("Exchange_Tenant_ID");
@@ -49,7 +50,7 @@ namespace Frends.Community.Email.Tests
                 To = _username,
                 Message = message,
                 IsMessageHtml = false,
-                Subject = subject
+                Subject = subject, 
             };
 
             var result = await EmailTask.SendEmailToExchangeServer(input, null, _server, new CancellationToken());
@@ -339,7 +340,7 @@ namespace Frends.Community.Email.Tests
             var input = new ExchangeInput
             {
                 To = _username,
-                From = "frends_exchange_test_user_2@frends.com",
+                From = _otherUser,
                 Message = message,
                 IsMessageHtml = false,
                 Subject = subject
@@ -349,7 +350,45 @@ namespace Frends.Community.Email.Tests
             Assert.IsTrue(result.EmailSent);
             Thread.Sleep(2000); // Give the email some time to get through.
             var email = await ReadTestEmail(subject);
-            Assert.AreEqual("frends_exchange_test_user_2@frends.com", email[0].From);
+            Assert.AreEqual(_otherUser, email[0].From);
+            await DeleteMessages(subject);
+        }
+
+        [Test]
+        public async Task SendEmailAsAnotherUserWithStringAttachmentTest()
+        {
+            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../stringAttachmentFile.txt");
+            var subject = "Email test - AnotherUserStringAttachment";
+            var input = new ExchangeInput
+            {
+                To = _username,
+                From = _otherUser,
+                Message = "This email has an attachment written from a string.",
+                IsMessageHtml = false,
+                Subject = subject
+            };
+
+            var stringAttachment = new AttachmentFromString
+            {
+                FileContent = "This is a test attachment from string.",
+                FileName = "stringAttachmentFile.txt"
+            };
+
+            var attachment = new Attachment
+            {
+                AttachmentType = AttachmentType.AttachmentFromString,
+                StringAttachment = stringAttachment
+            };
+
+            var attachmentArray = new Attachment[] { attachment };
+
+            var result = await EmailTask.SendEmailToExchangeServer(input, attachmentArray, _server, new CancellationToken());
+            Assert.IsTrue(result.EmailSent);
+            Thread.Sleep(2000); // Give the email some time to get through.
+            var email = await ReadTestEmailWithAttachment(subject);
+            Assert.AreEqual(_otherUser, email[0].From);
+            Assert.IsTrue(File.Exists(filePath));
+            File.Delete(filePath);
             await DeleteMessages(subject);
         }
 

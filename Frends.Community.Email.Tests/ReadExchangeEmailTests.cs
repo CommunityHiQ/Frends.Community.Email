@@ -15,7 +15,8 @@ namespace Frends.Community.Email.Tests
     public class ReadExchangeEmailTests
     {
         private readonly string _mailfolder = "Inbox";
-        private readonly string _username = "frends_exchange_test_user@frends.com";
+        private readonly string _username = Environment.GetEnvironmentVariable("Exchange_User") ?? "frends_exchange_test_user@frends.com";
+        private readonly string _otherUser = Environment.GetEnvironmentVariable("Exchange_Other_User") ?? "frends_exchange_test_user_2@frends.com";
         private readonly string _password = Environment.GetEnvironmentVariable("Exchange_User_Password");
         private readonly string _applicationID = Environment.GetEnvironmentVariable("Exchange_Application_ID");
         private readonly string _tenantID = Environment.GetEnvironmentVariable("Exchange_Tenant_ID");
@@ -312,7 +313,7 @@ namespace Frends.Community.Email.Tests
         public async Task ReadOtherUsersInbox()
         {
             var subject = "Read From Other User";
-            await SendTestEmail(subject, "frends_exchange_test_user_2@frends.com");
+            await SendTestEmail(subject, _otherUser);
             var options = new ExchangeOptions
             {
                 MaxEmails = 1,
@@ -330,12 +331,12 @@ namespace Frends.Community.Email.Tests
                 Username = _username,
                 Password = _password,
                 MailFolder = _mailfolder,
-                Mailbox = "frends_exchange_test_user_2@frends.com"
+                Mailbox = _otherUser
             };
 
             var result = await ReadEmailTask.ReadEmailFromExchangeServer(settings, options, new CancellationToken());
             Assert.AreEqual(1, result.Count);
-            await DeleteMessages(subject, "frends_exchange_test_user_2@frends.com");
+            await DeleteMessages(subject, _otherUser);
         }
 
         [Test]
@@ -343,7 +344,7 @@ namespace Frends.Community.Email.Tests
         {
             var subject = "Read Attachment From Other User";
             var dirPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../../../OtherUserAttachment/");
-            await SendTestEmailWithAttachment(subject, "OtherUserAttachment.txt", "frends_exchange_test_user_2@frends.com");
+            await SendTestEmailWithAttachment(subject, "OtherUserAttachment.txt", _otherUser);
             var options = new ExchangeOptions
             {
                 MaxEmails = 1,
@@ -363,13 +364,13 @@ namespace Frends.Community.Email.Tests
                 Username = _username,
                 Password = _password,
                 MailFolder = _mailfolder,
-                Mailbox = "frends_exchange_test_user_2@frends.com"
+                Mailbox = _otherUser
             };
 
             var result = await ReadEmailTask.ReadEmailFromExchangeServer(settings, options, new CancellationToken());
             Assert.IsTrue(File.Exists(result[0].AttachmentSaveDirs[0]));
             Directory.Delete(dirPath, true);
-            await DeleteMessages(subject, "frends_exchange_test_user_2@frends.com");
+            await DeleteMessages(subject, _otherUser);
         }
 
         [Test]
